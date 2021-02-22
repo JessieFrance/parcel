@@ -581,7 +581,7 @@ export default class Transformation {
     filePath: FilePath,
     plugin: PackageName,
     parcelConfigPath: FilePath,
-    parcelConfigKeyPath: string,
+    parcelConfigKeyPath?: string,
     isSource: boolean,
   |}): Promise<Config> {
     let configRequest = {
@@ -722,7 +722,7 @@ type TransformerWithNameAndConfig = {|
   name: PackageName,
   plugin: Transformer,
   config: ?Config,
-  configKeyPath: string,
+  configKeyPath?: string,
 |};
 
 function normalizeAssets(
