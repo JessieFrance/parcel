@@ -9,7 +9,7 @@ export function toProjectPath_(
   projectRoot: FilePath,
   p: FilePath,
 ): ProjectPath {
-  // TODO
+  // TODO we could save the `./` at the start of every path
   // return p != null ? relativePath(projectRoot, p, false) : p;
   return p != null ? relativePath(projectRoot, p) : p;
 }

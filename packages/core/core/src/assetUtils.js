@@ -205,10 +205,7 @@ export async function getConfig(
 
   let conf = await loadConfig(
     asset.options.inputFS,
-    fromProjectPath(
-      asset.options.projectRoot,
-      nullthrows(asset.value.configPath),
-    ),
+    fromProjectPath(asset.options.projectRoot, asset.value.filePath),
     filePaths,
     parse == null ? null : {parse},
   );
