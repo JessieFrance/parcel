@@ -1,7 +1,8 @@
 import assert from 'assert';
 import path from 'path';
 import nullthrows from 'nullthrows';
-import {md, normalizePath} from '@parcel/utils';
+import {normalizePath} from '@parcel/utils';
+import {md} from '@parcel/diagnostic';
 import {
   assertBundles,
   assertDependencyWasDeferred,
@@ -1461,7 +1462,7 @@ describe('scope hoisting', function() {
 
       it('throws an error for missing exports for dynamic import: destructured await assignment', async function() {
         let source = 'await-assignment-error.js';
-        let message = `async.js does not export 'missing'`;
+        let message = `./async.js does not export 'missing'`;
         await assert.rejects(
           () =>
             bundle(
@@ -1502,7 +1503,7 @@ describe('scope hoisting', function() {
 
       it('throws an error for missing exports for dynamic import: destructured await declaration', async function() {
         let source = 'await-declaration-error.js';
-        let message = `async.js does not export 'missing'`;
+        let message = `./async.js does not export 'missing'`;
         await assert.rejects(
           () =>
             bundle(
@@ -1543,7 +1544,7 @@ describe('scope hoisting', function() {
 
       it('throws an error for missing exports for dynamic import: namespace await declaration', async function() {
         let source = 'await-declaration-namespace-error.js';
-        let message = `async.js does not export 'missing'`;
+        let message = `./async.js does not export 'missing'`;
         await assert.rejects(
           () =>
             bundle(
@@ -1584,7 +1585,7 @@ describe('scope hoisting', function() {
 
       it('throws an error for missing exports for dynamic import: destructured then', async function() {
         let source = 'then-error.js';
-        let message = `async.js does not export 'missing'`;
+        let message = `./async.js does not export 'missing'`;
         await assert.rejects(
           () =>
             bundle(
@@ -1625,7 +1626,7 @@ describe('scope hoisting', function() {
 
       it('throws an error for missing exports for dynamic import: namespace then', async function() {
         let source = 'then-namespace-error.js';
-        let message = `async.js does not export 'missing'`;
+        let message = `./async.js does not export 'missing'`;
         await assert.rejects(
           () =>
             bundle(

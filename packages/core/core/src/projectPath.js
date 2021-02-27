@@ -9,6 +9,8 @@ export function toProjectPath_(
   projectRoot: FilePath,
   p: FilePath,
 ): ProjectPath {
+  // TODO
+  // return p != null ? relativePath(projectRoot, p, false) : p;
   return p != null ? relativePath(projectRoot, p) : p;
 }
 
