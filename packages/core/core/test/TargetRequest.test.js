@@ -450,7 +450,7 @@ describe('TargetResolver', () => {
       [
         {
           name: 'customB',
-          distDir: path.resolve('customB'),
+          distDir: relative(path.resolve('customB')),
           publicUrl: '/',
           env: {
             id: 'daa5d206066497852a3e8af4ff268cc2',
@@ -490,7 +490,7 @@ describe('TargetResolver', () => {
       [
         {
           name: 'customA',
-          distDir: path.resolve('customA'),
+          distDir: relative(path.resolve('customA')),
           publicUrl: '/',
           env: {
             id: 'daa5d206066497852a3e8af4ff268cc2',
