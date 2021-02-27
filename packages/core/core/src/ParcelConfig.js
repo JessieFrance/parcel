@@ -48,7 +48,6 @@ export type LoadedPlugin<T> = {|
 
 export default class ParcelConfig {
   options: ParcelOptions;
-  // TODO ???
   filePath: ProjectPath;
   resolvers: PureParcelConfigPipeline;
   transformers: GlobMap<ExtendableParcelConfigPipeline>;
