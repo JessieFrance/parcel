@@ -83,6 +83,7 @@ export type Target = {|
   publicUrl: string,
   loc?: ?SourceLocation,
   pipeline?: string,
+  source?: FilePath | Array<FilePath>,
 |};
 
 export type Dependency = {|
@@ -207,6 +208,7 @@ export type ParcelOptions = {|
   hmrOptions: ?HMROptions,
   shouldContentHash: boolean,
   serveOptions: ServerOptions | false,
+  shouldBuildLazily: boolean,
   shouldAutoInstall: boolean,
   logLevel: LogLevel,
   projectRoot: FilePath,
@@ -254,6 +256,7 @@ export type AssetNode = {|
   hasDeferred?: boolean,
   usedSymbolsDownDirty: boolean,
   usedSymbolsUpDirty: boolean,
+  requested?: boolean,
 |};
 
 export type DependencyNode = {|
@@ -342,6 +345,7 @@ export type EntrySpecifierNode = {|
 export type Entry = {|
   filePath: ProjectPath,
   packagePath: ProjectPath,
+  target?: string,
 |};
 
 export type EntryFileNode = {|
@@ -436,6 +440,7 @@ export type Bundle = {|
   isEntry: ?boolean,
   isInline: ?boolean,
   isSplittable: ?boolean,
+  isPlaceholder?: boolean,
   target: Target,
   filePath: ?ProjectPath,
   name: ?string,

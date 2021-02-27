@@ -25,6 +25,7 @@ export const DEFAULT_OPTIONS: ParcelOptions = {
   shouldAutoInstall: false,
   hmrOptions: undefined,
   shouldContentHash: true,
+  shouldBuildLazily: false,
   serveOptions: false,
   mode: 'development',
   env: {},

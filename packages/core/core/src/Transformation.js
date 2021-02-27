@@ -29,14 +29,14 @@ import path from 'path';
 import nullthrows from 'nullthrows';
 import crypto from 'crypto';
 import v8 from 'v8';
-import {
-  escapeMarkdown,
-  md5FromOrderedObject,
-  objectSortedEntries,
-} from '@parcel/utils';
+import {md5FromOrderedObject, objectSortedEntries} from '@parcel/utils';
 import logger, {PluginLogger} from '@parcel/logger';
 import {init as initSourcemaps} from '@parcel/source-map';
-import ThrowableDiagnostic, {errorToDiagnostic} from '@parcel/diagnostic';
+import ThrowableDiagnostic, {
+  errorToDiagnostic,
+  escapeMarkdown,
+  md,
+} from '@parcel/diagnostic';
 import {SOURCEMAP_EXTENSIONS} from '@parcel/utils';
 import {createDependency} from './Dependency';
 import ParcelConfig from './ParcelConfig';
@@ -166,8 +166,8 @@ export default class Transformation {
         logger.verbose([
           {
             origin: '@parcel/core',
-            message: `Could not load existing source map for ${escapeMarkdown(
-              fromProjectPathRelative(asset.value.filePath),
+            message: md`Could not load existing source map for ${fromProjectPathRelative(
+              asset.value.filePath,
             )}`,
             filePath,
           },

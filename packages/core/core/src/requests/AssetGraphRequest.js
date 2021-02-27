@@ -20,12 +20,8 @@ import type {EntryResult} from './EntryRequest';
 import type {PathRequestInput} from './PathRequest';
 
 import invariant from 'assert';
-import {
-  escapeMarkdown,
-  md5FromOrderedObject,
-  PromiseQueue,
-} from '@parcel/utils';
-import ThrowableDiagnostic from '@parcel/diagnostic';
+import {md5FromOrderedObject, PromiseQueue} from '@parcel/utils';
+import ThrowableDiagnostic, {md} from '@parcel/diagnostic';
 import AssetGraph from '../AssetGraph';
 import {PARCEL_VERSION} from '../constants';
 import createEntryRequest from './EntryRequest';
@@ -41,6 +37,8 @@ type AssetGraphRequestInput = {|
   assetGroups?: Array<AssetGroup>,
   optionsRef: SharedReference,
   name: string,
+  shouldBuildLazily?: boolean,
+  requestedAssetIds?: Set<string>,
 |};
 
 type RunInput = {|
@@ -95,9 +93,18 @@ export class AssetGraphBuilder {
   name: string;
   assetRequests: Array<AssetGroup> = [];
   cacheKey: string;
+  shouldBuildLazily: boolean;
+  requestedAssetIds: Set<string>;
 
   constructor({input, prevResult, api, options}: RunInput) {
-    let {entries, assetGroups, optionsRef, name} = input;
+    let {
+      entries,
+      assetGroups,
+      optionsRef,
+      name,
+      requestedAssetIds,
+      shouldBuildLazily,
+    } = input;
     let assetGraph = prevResult?.assetGraph ?? new AssetGraph();
     assetGraph.setRootConnections({
       entries,
@@ -108,6 +115,8 @@ export class AssetGraphBuilder {
     this.options = options;
     this.api = api;
     this.name = name;
+    this.requestedAssetIds = requestedAssetIds ?? new Set();
+    this.shouldBuildLazily = shouldBuildLazily ?? false;
 
     this.cacheKey = md5FromOrderedObject({
       parcelVersion: PARCEL_VERSION,
@@ -149,7 +158,7 @@ export class AssetGraphBuilder {
       for (let child of this.assetGraph.getNodesConnectedFrom(node)) {
         if (
           (!visited.has(child.id) || child.hasDeferred) &&
-          this.assetGraph.shouldVisitChild(node, child)
+          this.shouldVisitChild(node, child)
         ) {
           visited.add(child.id);
           visit(child);
@@ -196,6 +205,38 @@ export class AssetGraphBuilder {
       changedAssets: this.changedAssets,
       assetRequests: this.assetRequests,
     };
+  }
+
+  shouldVisitChild(node: AssetGraphNode, child: AssetGraphNode): boolean {
+    if (this.shouldBuildLazily) {
+      if (node.type === 'asset' && child.type === 'dependency') {
+        if (this.requestedAssetIds.has(node.value.id)) {
+          node.requested = true;
+        } else if (!node.requested) {
+          let isAsyncChild = this.assetGraph
+            .getIncomingDependencies(node.value)
+            .every(dep => dep.isEntry || dep.isAsync);
+          if (isAsyncChild) {
+            node.requested = false;
+          } else {
+            delete node.requested;
+          }
+        }
+
+        let previouslyDeferred = child.deferred;
+        child.deferred = node.requested === false;
+
+        if (!previouslyDeferred && child.deferred) {
+          this.assetGraph.markParentsWithHasDeferred(child);
+        } else if (previouslyDeferred && !child.deferred) {
+          this.assetGraph.unmarkParentsWithHasDeferred(child);
+        }
+
+        return !child.deferred;
+      }
+    }
+
+    return this.assetGraph.shouldVisitChild(node, child);
   }
 
   propagateSymbols() {
@@ -420,8 +461,8 @@ export class AssetGraphBuilder {
             invariant(resolution && resolution.type === 'asset_group');
 
             errors.push({
-              message: `${escapeMarkdown(
-                fromProjectPathRelative(resolution.value.filePath),
+              message: md`${fromProjectPathRelative(
+                resolution.value.filePath,
               )} does not export '${s}'`,
               origin: '@parcel/core',
               filePath: loc?.filePath,

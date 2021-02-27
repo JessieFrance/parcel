@@ -1,11 +1,12 @@
 // @flow strict-local
 
-import type {Async, FilePath} from '@parcel/types';
+import type {Async, FilePath, PackageJSON} from '@parcel/types';
 import type {StaticRunOpts} from '../RequestTracker';
-import type {Entry, ParcelOptions, InternalFile} from '../types';
+import type {Entry, InternalFile, ParcelOptions} from '../types';
+import type {FileSystem} from '@parcel/fs';
 
 import {isDirectoryInside, isGlob, glob} from '@parcel/utils';
-import ThrowableDiagnostic from '@parcel/diagnostic';
+import ThrowableDiagnostic, {md} from '@parcel/diagnostic';
 import path from 'path';
 import {
   type ProjectPath,
@@ -70,7 +71,34 @@ async function run({input, api, options}: RunOpts): Promise<EntryResult> {
   return result;
 }
 
-class EntryResolver {
+async function assertFile(
+  fs: FileSystem,
+  source: string,
+  diagnosticPath: string,
+) {
+  let stat;
+  try {
+    stat = await fs.stat(source);
+  } catch (err) {
+    throw new ThrowableDiagnostic({
+      diagnostic: {
+        message: `${diagnosticPath} does not exist`,
+        filePath: source,
+      },
+    });
+  }
+
+  if (!stat.isFile()) {
+    throw new ThrowableDiagnostic({
+      diagnostic: {
+        message: `${diagnosticPath} is not a file`,
+        filePath: source,
+      },
+    });
+  }
+}
+
+export class EntryResolver {
   options: ParcelOptions;
 
   constructor(options: ParcelOptions) {
@@ -101,53 +129,76 @@ class EntryResolver {
     } catch (err) {
       throw new ThrowableDiagnostic({
         diagnostic: {
-          message: `Entry ${entry} does not exist`,
+          message: md`Entry ${entry} does not exist`,
           filePath: entry,
         },
       });
     }
 
     if (stat.isDirectory()) {
-      let pkg = await this.readPackage(entry);
-      if (pkg && pkg.source != null) {
+      let pkg: ?{
+        ...PackageJSON,
+        filePath: FilePath,
+        ...
+      } = await this.readPackage(entry);
+
+      if (pkg) {
+        let {filePath} = pkg;
         let entries = [];
-        let files = [];
+        let files = [
+          {
+            filePath: toProjectPath(this.options.projectRoot, filePath),
+          },
+        ];
 
-        let pkgSources = Array.isArray(pkg.source) ? pkg.source : [pkg.source];
-        for (let pkgSource of pkgSources) {
-          if (typeof pkgSource === 'string') {
-            let source = path.join(path.dirname(pkg.filePath), pkgSource);
-            try {
-              stat = await this.options.inputFS.stat(source);
-            } catch (err) {
-              throw new ThrowableDiagnostic({
-                diagnostic: {
-                  message: `${pkgSource} in ${path.relative(
-                    this.options.inputFS.cwd(),
-                    pkg.filePath,
-                  )}#source does not exist`,
-                  filePath: source,
-                },
-              });
+        let targetsWithSources = 0;
+        if (pkg.targets) {
+          for (let targetName in pkg.targets) {
+            let target = pkg.targets[targetName];
+            if (target.source != null) {
+              targetsWithSources++;
+              let targetSources = Array.isArray(target.source)
+                ? target.source
+                : [target.source];
+              for (let relativeSource of targetSources) {
+                let source = path.join(entry, relativeSource);
+                let diagnosticPath = md`${relativeSource} in ${path.relative(
+                  this.options.inputFS.cwd(),
+                  filePath,
+                )}#targets["${targetName}"].source`;
+                await assertFile(this.options.inputFS, source, diagnosticPath);
+
+                entries.push({
+                  filePath: toProjectPath(this.options.projectRoot, source),
+                  packagePath: toProjectPath(this.options.projectRoot, entry),
+                  target: targetName,
+                });
+              }
             }
+          }
+        }
 
-            if (!stat.isFile()) {
-              throw new ThrowableDiagnostic({
-                diagnostic: {
-                  message: `${pkgSource} in ${path.relative(
-                    this.options.inputFS.cwd(),
-                    pkg.filePath,
-                  )}#source is not a file`,
-                  filePath: source,
-                },
-              });
-            }
+        let allTargetsHaveSource =
+          targetsWithSources > 0 &&
+          pkg != null &&
+          pkg.targets != null &&
+          Object.keys(pkg.targets).length === targetsWithSources;
 
+        if (!allTargetsHaveSource && pkg.source != null) {
+          let pkgSources = Array.isArray(pkg.source)
+            ? pkg.source
+            : [pkg.source];
+          for (let pkgSource of pkgSources) {
+            let source = path.join(path.dirname(filePath), pkgSource);
+            let diagnosticPath = md`${pkgSource} in ${path.relative(
+              this.options.inputFS.cwd(),
+              filePath,
+            )}#source`;
+            await assertFile(this.options.inputFS, source, diagnosticPath);
             entries.push({
               filePath: toProjectPath(this.options.projectRoot, source),
               packagePath: toProjectPath(this.options.projectRoot, entry),
             });
-            files.push({filePath: pkg.filePath});
           }
         }
 
@@ -162,7 +213,7 @@ class EntryResolver {
 
       throw new ThrowableDiagnostic({
         diagnostic: {
-          message: `Could not find entry: ${entry}`,
+          message: md`Could not find entry: ${entry}`,
           filePath: entry,
         },
       });
@@ -194,7 +245,9 @@ class EntryResolver {
     });
   }
 
-  async readPackage(entry: FilePath) {
+  async readPackage(
+    entry: FilePath,
+  ): Promise<?{...PackageJSON, filePath: FilePath, ...}> {
     let content, pkg;
     let pkgFile = path.join(entry, 'package.json');
     try {
@@ -208,7 +261,7 @@ class EntryResolver {
     } catch (err) {
       throw new ThrowableDiagnostic({
         diagnostic: {
-          message: `Error parsing ${path.relative(
+          message: md`Error parsing ${path.relative(
             this.options.inputFS.cwd(),
             pkgFile,
           )}: ${err.message}`,
@@ -217,7 +270,6 @@ class EntryResolver {
       });
     }
 
-    pkg.filePath = pkgFile;
-    return pkg;
+    return {...pkg, filePath: pkgFile};
   }
 }

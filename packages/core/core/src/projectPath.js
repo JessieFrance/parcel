@@ -9,7 +9,7 @@ export function toProjectPath_(
   projectRoot: FilePath,
   p: FilePath,
 ): ProjectPath {
-  return relativePath(projectRoot, p);
+  return p != null ? relativePath(projectRoot, p) : p;
 }
 
 export const toProjectPath: ((

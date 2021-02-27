@@ -133,6 +133,7 @@ export type PackageTargetDescriptor = {|
   +isLibrary?: boolean,
   +optimize?: boolean,
   +scopeHoist?: boolean,
+  +source?: FilePath | Array<FilePath>,
 |};
 
 /**
@@ -233,7 +234,7 @@ export type PackageJSON = {
   module?: FilePath,
   types?: FilePath,
   browser?: FilePath | {[FilePath]: FilePath | boolean, ...},
-  source?: FilePath | {[FilePath]: FilePath, ...},
+  source?: FilePath | Array<FilePath>,
   alias?: {[PackageName | FilePath | Glob]: PackageName | FilePath, ...},
   browserslist?: Array<string> | {[string]: Array<string>},
   engines?: Engines,
@@ -270,6 +271,7 @@ export type InitialParcelOptions = {|
   +logLevel?: LogLevel,
   +shouldProfile?: boolean,
   +shouldPatchConsole?: boolean,
+  +shouldBuildLazily?: boolean,
 
   +inputFS?: FileSystem,
   +outputFS?: FileSystem,
@@ -302,6 +304,7 @@ export interface PluginOptions {
   +env: EnvMap;
   +hmrOptions: ?HMROptions;
   +serveOptions: ServerOptions | false;
+  +shouldBuildLazily: boolean;
   +shouldAutoInstall: boolean;
   +logLevel: LogLevel;
   +entryRoot: FilePath;
@@ -595,6 +598,11 @@ export interface Asset extends BaseAsset {
 export type DevDepOptions = {|
   moduleSpecifier: ModuleSpecifier,
   resolveFrom: FilePath,
+  /**
+   * Whether to also invalidate the parcel plugin that loaded this dev dependency
+   * when it changes. This is useful if the parcel plugin or another parent dependency
+   * has its own cache for this dev dependency other than Node's require cache.
+   */
   invalidateParcelPlugin?: boolean,
 |};
 
@@ -1347,6 +1355,7 @@ export type BuildSuccessEvent = {|
   +bundleGraph: BundleGraph<NamedBundle>,
   +buildTime: number,
   +changedAssets: Map<string, Asset>,
+  +requestBundle: (bundle: NamedBundle) => Promise<BuildSuccessEvent>,
 |};
 
 /**

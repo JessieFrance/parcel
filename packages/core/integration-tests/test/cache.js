@@ -13,6 +13,7 @@ import {
   mergeParcelOptions,
   sleep,
 } from '@parcel/test-utils';
+import {md} from '@parcel/diagnostic';
 import fs from 'fs';
 import {NodePackageManager} from '@parcel/package-manager';
 import {createWorkerFarm} from '@parcel/core';
@@ -205,12 +206,6 @@ describe('cache', function() {
 
     for (let {name, formatter, nesting} of configs) {
       describe(name, function() {
-        beforeEach(async () => {
-          await workerFarm.callAllWorkers('invalidateRequireCache', [
-            path.join(inputDir, name),
-          ]);
-        });
-
         it(`should support adding a ${name}`, async function() {
           let b = await testCache({
             // Babel's config loader only works with the node filesystem
@@ -241,20 +236,6 @@ describe('cache', function() {
                   presets: ['@babel/preset-env'],
                 }),
               );
-
-              // At the moment, adding a JS config requires restarting the process
-              // due to https://github.com/babel/babel/pull/12211. Simulate this
-              // by clearing the require cache for @parcel/transformer-babel and @babel/core.
-              await workerFarm.callAllWorkers('invalidateRequireCache', [
-                packageManager.resolveSync(
-                  '@parcel/transformer-babel',
-                  __filename,
-                )?.resolved,
-              ]);
-
-              await workerFarm.callAllWorkers('invalidateRequireCache', [
-                packageManager.resolveSync('@babel/core', __filename)?.resolved,
-              ]);
 
               await sleep(100);
             },
@@ -308,10 +289,6 @@ describe('cache', function() {
                   presets: ['@babel/preset-env'],
                 }),
               );
-
-              await workerFarm.callAllWorkers('invalidateRequireCache', [
-                path.join(inputDir, name),
-              ]);
 
               await sleep(100);
             },
@@ -396,9 +373,6 @@ describe('cache', function() {
                   extends: `./${extendedName}`,
                 }),
               );
-              await workerFarm.callAllWorkers('invalidateRequireCache', [
-                path.join(inputDir, extendedName),
-              ]);
             },
             async update(b) {
               let contents = await overlayFS.readFile(
@@ -416,10 +390,6 @@ describe('cache', function() {
                   presets: ['@babel/preset-env'],
                 }),
               );
-
-              await workerFarm.callAllWorkers('invalidateRequireCache', [
-                path.join(inputDir, extendedName),
-              ]);
 
               await sleep(100);
             },
@@ -471,21 +441,6 @@ describe('cache', function() {
                   }),
                 );
 
-                // At the moment, adding a JS config requires restarting the process
-                // due to https://github.com/babel/babel/pull/12211. Simulate this
-                // by clearing the require cache for @parcel/transformer-babel and @babel/core.
-                await workerFarm.callAllWorkers('invalidateRequireCache', [
-                  packageManager.resolveSync(
-                    '@parcel/transformer-babel',
-                    __filename,
-                  )?.resolved,
-                ]);
-
-                await workerFarm.callAllWorkers('invalidateRequireCache', [
-                  packageManager.resolveSync('@babel/core', __filename)
-                    ?.resolved,
-                ]);
-
                 await sleep(100);
               },
             });
@@ -525,9 +480,6 @@ describe('cache', function() {
                     ],
                   }),
                 );
-                await workerFarm.callAllWorkers('invalidateRequireCache', [
-                  path.join(inputDir, `src/nested/${name}`),
-                ]);
               },
               async update(b) {
                 let contents = await overlayFS.readFile(
@@ -549,10 +501,6 @@ describe('cache', function() {
                     presets: ['@babel/preset-env'],
                   }),
                 );
-
-                await workerFarm.callAllWorkers('invalidateRequireCache', [
-                  path.join(inputDir, `src/nested/${name}`),
-                ]);
 
                 await sleep(100);
               },
@@ -1384,7 +1332,7 @@ describe('cache', function() {
           });
         },
         {
-          message: `Entry ${path.join(
+          message: md`Entry ${path.join(
             inputDir,
             'src/index.js',
           )} does not exist`,
@@ -1401,7 +1349,7 @@ describe('cache', function() {
           });
         },
         {
-          message: `Entry ${path.join(
+          message: md`Entry ${path.join(
             inputDir,
             'src/index.js',
           )} does not exist`,

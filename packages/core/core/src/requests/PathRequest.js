@@ -10,9 +10,12 @@ import type {StaticRunOpts} from '../RequestTracker';
 import type {AssetGroup, Dependency, ParcelOptions} from '../types';
 import type {ConfigAndCachePath} from './ParcelConfigRequest';
 
-import ThrowableDiagnostic, {errorToDiagnostic} from '@parcel/diagnostic';
+import ThrowableDiagnostic, {
+  errorToDiagnostic,
+  escapeMarkdown,
+  md,
+} from '@parcel/diagnostic';
 import {PluginLogger} from '@parcel/logger';
-import {escapeMarkdown} from '@parcel/utils';
 import nullthrows from 'nullthrows';
 import path from 'path';
 import URL from 'url';
@@ -171,7 +174,7 @@ export class ResolverRunner {
         } else {
           throw await this.getThrowableDiagnostic(
             dependency,
-            `Unknown pipeline: ${pipeline}.`,
+            md`Unknown pipeline: ${pipeline}.`,
           );
         }
       }
@@ -189,7 +192,7 @@ export class ResolverRunner {
       if (typeof parsed.pathname !== 'string') {
         throw await this.getThrowableDiagnostic(
           dependency,
-          `Received URL without a pathname ${filePath}.`,
+          md`Received URL without a pathname ${filePath}.`,
         );
       }
       filePath = decodeURIComponent(parsed.pathname);
@@ -293,7 +296,7 @@ export class ResolverRunner {
 
     let err: ThrowableDiagnostic = await this.getThrowableDiagnostic(
       dependency,
-      `Failed to resolve '${specifier}' ${dir ? `from '${dir}'` : ''}`,
+      md`Failed to resolve '${specifier}' ${dir ? `from '${dir}'` : ''}`,
     );
 
     // Merge diagnostics
